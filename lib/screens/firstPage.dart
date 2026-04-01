@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:khwamroo/screens/login_screen.dart';
+import 'package:khwamroo/screens/register_screen.dart';
 
 class Firstpage extends StatelessWidget {
   const Firstpage({super.key});
@@ -55,9 +57,7 @@ class Firstpage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8),
-
                   SizedBox(height: 30),
-
                   Spacer(),
                   //ปุ่ม
                   Column(
@@ -70,7 +70,8 @@ class Firstpage extends StatelessWidget {
                             backgroundColor: Colors.black87,
                           ),
                           onPressed: () {
-                            print("Login");
+                            Navigator.push(context , MaterialPageRoute(builder: (context) => LoginScreen()),
+                            );
                           },
                           child: Text("Login",style: TextStyle(color: Colors.white),),
                         ),
@@ -80,9 +81,8 @@ class Firstpage extends StatelessWidget {
                         width: double.infinity,
                         height: 55,
                         child: OutlinedButton(
-                          onPressed: () {
-                            print("Register");
-                          },
+                          onPressed: () { Navigator.push(context , MaterialPageRoute(builder: (context) => RegisterScreen(),
+                          ));},
                           child: Text("Register",style: TextStyle(color: Colors.black87,),
                         ),
                       ),

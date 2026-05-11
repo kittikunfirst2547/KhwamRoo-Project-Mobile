@@ -84,7 +84,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: (value) => value!.isEmpty ? "กรุณากรอกชื่อ" : null,
                 ),
-
                 _buildLabel("อีเมล"),
                 TextFormField(
                   controller: _emailController,
@@ -105,7 +104,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-
                 _buildLabel("รหัสผ่าน"),
                 TextFormField(
                   controller: _passwordController,
@@ -115,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     fillColor: lightGrey,
                     hintText: "******",
                     hintStyle: TextStyle(color: Colors.grey),
-                    suffixIcon: const Icon(Icons.visibility_off_outlined, color: Colors.grey),
+                    suffixIcon: Icon(Icons.visibility_off_outlined, color: Colors.grey),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -134,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 0,
                     ),
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {

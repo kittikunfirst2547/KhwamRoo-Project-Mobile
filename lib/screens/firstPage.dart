@@ -10,7 +10,6 @@ class Firstpage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          //ส่วนบน
             Container(
             height: 450,
             width: double.infinity,
@@ -18,7 +17,7 @@ class Firstpage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset("./assets/images/Logo1.png"),
+                Icon(Icons.book, size: 80, color: Colors.white),
                 Text(
                   'ความรู้',
                   style: TextStyle(

@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // ← เพิ่ม
 import 'package:khwamroo/models/post_model.dart';
+import 'package:khwamroo/services/notification_service.dart';
 import 'package:khwamroo/services/post_service.dart';
 import 'package:khwamroo/screens/profile_screen.dart';
 
@@ -13,22 +16,82 @@ class PostDetailScreen extends StatefulWidget {
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
   final _postService = PostService();
+  final _notificationService = NotificationService();
+  final _db = FirebaseFirestore.instance; // ← เพิ่ม
   bool _liked = false;
-  late int _likeCount;
 
-  @override
-  void initState() {
-    super.initState();
-    _likeCount = widget.post.likes;
+  bool get _isOwner =>
+      FirebaseAuth.instance.currentUser?.uid == widget.post.userId;
+
+  void _handleLike() async {
+    if (_liked) return;
+    setState(() => _liked = true);
+
+    try {
+      await _postService.likePost(widget.post.id);
+      print('✅ like สำเร็จ postId: ${widget.post.id}');
+    } catch (e) {
+      print('❌ like error: $e');
+      setState(() => _liked = false);
+    }
+
+    await _notificationService.sendLikeNotification(
+      toUserId: widget.post.userId,
+      postId: widget.post.id,
+      postTitle: widget.post.title,
+    );
   }
 
-  void _handleLike() {
-    if (_liked) return;
-    setState(() {
-      _liked = true;
-      _likeCount++;
-    });
-    _postService.likePost(widget.post.id);
+  Future<void> _deletePost() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('ลบโพสต์?'),
+        content: const Text(
+          'โพสต์นี้จะถูกลบถาวร ไม่สามารถกู้คืนได้',
+          style: TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก',
+                style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('ลบ',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _postService.deletePost(widget.post.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ลบโพสต์สำเร็จ')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -43,6 +106,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          if (_isOwner)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.black),
+              onSelected: (value) {
+                if (value == 'delete') _deletePost();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline,
+                          color: Colors.red, size: 18),
+                      SizedBox(width: 8),
+                      Text('ลบโพสต์',
+                          style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -52,15 +138,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
             // Category badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(
-                post.category,
-                style: const TextStyle(fontSize: 12),
-              ),
+              child: Text(post.category,
+                  style: const TextStyle(fontSize: 12)),
             ),
             const SizedBox(height: 12),
 
@@ -75,19 +160,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Author row — กดไปหน้า Profile
+            // Author row
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProfileScreen(
-                      userId: post.userId,
-                      displayName: post.displayName,
-                    ),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(
+                    userId: post.userId,
+                    displayName: post.displayName,
                   ),
-                );
-              },
+                ),
+              ),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -102,91 +185,85 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        post.displayName,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        'กดเพื่อดูโปรไฟล์',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
+                      Text(post.displayName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600)),
+                      Text('กดเพื่อดูโปรไฟล์',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500)),
                     ],
                   ),
                   const Spacer(),
-                  // วันที่
                   Text(
                     '${post.createdAt.day}/${post.createdAt.month}/${post.createdAt.year}',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade400,
-                    ),
+                        fontSize: 12, color: Colors.grey.shade400),
                   ),
                 ],
               ),
             ),
 
             const Divider(height: 32),
-            // แสดงรูปถ้ามี
-            if (post.imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  post.imageUrl!,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                ),
-              ),
-            if (post.imageUrl != null) const SizedBox(height: 16),
 
-            // Body เต็ม
-            Text(
-              post.body,
-              style: const TextStyle(fontSize: 16, height: 1.8),
-            ),
+            // Body
+            Text(post.body,
+                style: const TextStyle(fontSize: 16, height: 1.8)),
             const SizedBox(height: 40),
 
-            // Like button
+            // ── Like button ดึง likes realtime ────────
             Center(
-              child: GestureDetector(
-                onTap: _handleLike,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _liked ? Colors.red.shade50 : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _liked ? Icons.favorite : Icons.favorite_border,
-                        color: _liked ? Colors.red : Colors.grey,
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: _db
+                    .collection('posts')
+                    .doc(post.id)
+                    .snapshots(),
+                builder: (context, snap) {
+                  // ดึง likes จาก Firestore realtime
+                  int likes = widget.post.likes; // default
+                  if (snap.hasData && snap.data!.exists) {
+                  final data = snap.data!.data() as Map<String, dynamic>?;
+                  likes = data?['likes'] ?? 0;
+                  }
+                  return GestureDetector(
+                    onTap: _handleLike,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _liked
+                            ? Colors.red.shade50
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$_likeCount ถูกใจ',
-                        style: TextStyle(
-                          color: _liked ? Colors.red : Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _liked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color:
+                            _liked ? Colors.red : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$likes ถูกใจ', // ← realtime
+                            style: TextStyle(
+                              color: _liked
+                                  ? Colors.red
+                                  : Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
-
             const SizedBox(height: 40),
           ],
         ),

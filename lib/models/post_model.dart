@@ -10,7 +10,7 @@ class Post {
   final String displayName;
   final DateTime createdAt;
   final int likes;
-  final String? imageUrl;
+
 
   Post({
     required this.id,
@@ -21,7 +21,7 @@ class Post {
     required this.displayName,
     required this.createdAt,
     required this.likes,
-    this.imageUrl,
+
   });
 
   factory Post.fromMap(String id, Map<String, dynamic> map) {
@@ -34,7 +34,6 @@ class Post {
       displayName: map['displayName'] ?? 'ไม่ระบุชื่อ',
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       likes: map['likes'] ?? 0,
-      imageUrl: map['imageUrl'],
     );
   }
 
@@ -47,7 +46,6 @@ class Post {
       'displayName': displayName,
       'createdAt': FieldValue.serverTimestamp(),
       'likes': likes,
-      if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 }

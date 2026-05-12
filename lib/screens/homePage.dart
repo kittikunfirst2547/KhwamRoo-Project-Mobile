@@ -1,7 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:khwamroo/models/post_model.dart';
+import 'package:khwamroo/screens/notifications_screen.dart';
 import 'package:khwamroo/screens/post_detail_screen.dart';
+import 'package:khwamroo/screens/profile_screen.dart';
+import 'package:khwamroo/services/notification_service.dart';
 import 'package:khwamroo/services/post_service.dart';
+
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -35,20 +40,65 @@ class _HomepageState extends State<Homepage> {
       ),
     );
   }
-
   // ── Header ──────────────────────────────────────
   Widget _buildHeader() {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? '';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Logo
           SizedBox(
             width: 120,
             height: 120,
             child: Image.asset('assets/images/Logo1.png', fit: BoxFit.cover),
           ),
-          Container(width: 35, height: 35, color: Colors.black87),
+
+          // โปรไฟล์มุมขวาบน
+          GestureDetector(
+            onTap: () {
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(
+                      userId: user.uid,
+                      displayName: displayName,
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Row(
+              children: [
+                // ชื่อ
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Avatar
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.black,
+                  child: Text(
+                    displayName.isNotEmpty
+                        ? displayName[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -188,7 +238,10 @@ class _HomepageState extends State<Homepage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _navItem(Icons.home, 'หน้าแรก', isActive: true),
-          _navItem(Icons.category, 'หมวดหมู่'),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/category'),
+            child: _navItem(Icons.category, 'หมวดหมู่'),
+          ),
           Container(
             width: 50,
             height: 50,
@@ -203,8 +256,63 @@ class _HomepageState extends State<Homepage> {
               icon: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
-          _navItem(Icons.notifications, 'แจ้งเตือน'),
-          _navItem(Icons.person, 'โปรไฟล์'),
+          StreamBuilder<int>(
+            stream: NotificationService().getUnreadCount(),
+            builder: (context, snap) {
+              final count = snap.data ?? 0;
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _navItem(Icons.notifications, 'แจ้งเตือน'),
+                    if (count > 0)
+                      Positioned(
+                        top: 0,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 10),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          GestureDetector(
+            onTap: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(
+                      userId: user.uid,
+                      displayName: user.displayName ?? '',
+                    ),
+                  ),
+                );
+              } else {
+                // ถ้ายังไม่ Login ให้ไปหน้า Login
+                Navigator.pushNamed(context, '/login');
+              }
+            },
+            child: _navItem(Icons.person, 'โปรไฟล์'),
+          ),
         ],
       ),
     );

@@ -1,8 +1,6 @@
-import 'dart:io';
+// lib/screens/write_post_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:khwamroo/models/post_model.dart';
 import 'package:khwamroo/services/post_service.dart';
 
@@ -19,8 +17,6 @@ class _WritePostScreenState extends State<WritePostScreen> {
   final _bodyController = TextEditingController();
   String _selectedCategory = 'การเงิน';
   bool _isLoading = false;
-  File? _selectedImage;        // ← รูปที่เลือก
-  String? _uploadedImageUrl;   // ← url หลัง upload
 
   final List<String> _categories = [
     'การเงิน', 'การเรียน', 'กีฬา', 'เกม', 'Mindset', 'Career'
@@ -31,90 +27,6 @@ class _WritePostScreenState extends State<WritePostScreen> {
     _titleController.dispose();
     _bodyController.dispose();
     super.dispose();
-  }
-
-  // เลือกรูปจาก gallery
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,        // ← compress รูปก่อน upload
-    );
-    if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
-    }
-  }
-
-  // ถ่ายรูปด้วยกล้อง
-  Future<void> _takePhoto() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
-    if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
-    }
-  }
-
-  // แสดง bottom sheet เลือก gallery หรือ camera
-  void _showImageOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('เลือกจาก Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('ถ่ายรูป'),
-              onTap: () {
-                Navigator.pop(context);
-                _takePhoto();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // upload รูปไป Firebase Storage
-  Future<String?> _uploadImage(File image, String userId) async {
-    try {
-      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('post_images')
-          .child(fileName);
-      await ref.putFile(image);
-      return await ref.getDownloadURL();
-    } catch (e) {
-      _showSnackbar('อัปโหลดรูปไม่สำเร็จ: $e');
-      return null;
-    }
   }
 
   Future<void> _submitPost() async {
@@ -136,12 +48,6 @@ class _WritePostScreenState extends State<WritePostScreen> {
         return;
       }
 
-      // upload รูปถ้ามี
-      String? imageUrl;
-      if (_selectedImage != null) {
-        imageUrl = await _uploadImage(_selectedImage!, user.uid);
-      }
-
       final post = Post(
         id: '',
         title: _titleController.text.trim(),
@@ -151,7 +57,6 @@ class _WritePostScreenState extends State<WritePostScreen> {
         displayName: user.displayName ?? 'ไม่ระบุชื่อ',
         createdAt: DateTime.now(),
         likes: 0,
-        imageUrl: imageUrl,   // ← เพิ่ม field ใหม่
       );
 
       await _postService.addPost(post);
@@ -163,7 +68,7 @@ class _WritePostScreenState extends State<WritePostScreen> {
     } catch (e) {
       _showSnackbar('เกิดข้อผิดพลาด: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -256,13 +161,11 @@ class _WritePostScreenState extends State<WritePostScreen> {
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  const BorderSide(color: Colors.black),
+                  borderSide: const BorderSide(color: Colors.black),
                 ),
               ),
             ),
@@ -279,112 +182,18 @@ class _WritePostScreenState extends State<WritePostScreen> {
               maxLines: 10,
               maxLength: 5000,
               decoration: InputDecoration(
-                hintText:
-                'เขียนเนื้อหาที่มีสาระ อย่างน้อย 50 ตัวอักษร...',
+                hintText: 'เขียนเนื้อหาที่มีสาระ อย่างน้อย 50 ตัวอักษร...',
                 hintStyle: TextStyle(color: Colors.grey.shade400),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  BorderSide(color: Colors.grey.shade300),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                  const BorderSide(color: Colors.black),
+                  borderSide: const BorderSide(color: Colors.black),
                 ),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // รูปภาพ
-            const Text('รูปภาพ (ไม่บังคับ)',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14)),
-            const SizedBox(height: 8),
-
-            // ถ้ายังไม่ได้เลือกรูป
-            if (_selectedImage == null)
-              GestureDetector(
-                onTap: _showImageOptions,
-                child: Container(
-                  width: double.infinity,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_photo_alternate_outlined,
-                          size: 40, color: Colors.grey.shade400),
-                      const SizedBox(height: 8),
-                      Text('กดเพื่อเพิ่มรูปภาพ',
-                          style: TextStyle(
-                              color: Colors.grey.shade500)),
-                    ],
-                  ),
-                ),
-              ),
-
-            // ถ้าเลือกรูปแล้ว
-            if (_selectedImage != null)
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(
-                      _selectedImage!,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  // ปุ่มลบรูป
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedImage = null),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ),
-                  // ปุ่มเปลี่ยนรูป
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: _showImageOptions,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text('เปลี่ยนรูป',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
 
             const SizedBox(height: 16),
 
@@ -404,8 +213,7 @@ class _WritePostScreenState extends State<WritePostScreen> {
                     child: Text(
                       'เนื้อหาต้องมีสาระ ไม่มีดราม่า และตรงกับหมวดหมู่ที่เลือก',
                       style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500),
+                          fontSize: 12, color: Colors.grey.shade500),
                     ),
                   ),
                 ],

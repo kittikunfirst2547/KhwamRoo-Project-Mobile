@@ -28,6 +28,9 @@ class PostService {
     });
   }
 
+  Future<void> deletePost(String postId) async {
+    await _db.collection('posts').doc(postId).delete();
+  }
   // กด like
   Future<void> likePost(String postId) async {
     await _db.collection('posts').doc(postId).update({

@@ -16,8 +16,8 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  final _postService = PostService();
-  String _selectedCategory = 'ทั้งหมด';
+  final _postService = PostService(); //ประกาศใช้งาน Service เพื่อเรียกข้อมูลโพสต์จาก Firebase
+  String _selectedCategory = 'ทั้งหมด'; //default
 
   final List<String> _categories = [
     'ทั้งหมด', 'การเงิน', 'การเรียน', 'กีฬา', 'เกม', 'Mindset', 'Career'
@@ -55,9 +55,8 @@ class _HomepageState extends State<Homepage> {
             height: 120,
             child: Image.asset('assets/images/Logo1.png', fit: BoxFit.cover),
           ),
-
           // โปรไฟล์มุมขวาบน
-          GestureDetector(
+          GestureDetector( //ตรวจจับการกระทำของผู้ใช้
             onTap: () {
               if (user != null) {
                 Navigator.push(
@@ -88,7 +87,7 @@ class _HomepageState extends State<Homepage> {
                   backgroundColor: Colors.black,
                   child: Text(
                     displayName.isNotEmpty
-                        ? displayName[0].toUpperCase()
+                        ? displayName.toUpperCase()
                         : '?',
                     style: const TextStyle(
                       color: Colors.white,
@@ -108,22 +107,23 @@ class _HomepageState extends State<Homepage> {
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 56,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
+      child: ListView.builder( //loop ข้อมูลตาม list ด้านบนเด้อ
+        scrollDirection: Axis.horizontal, //เลื่อนแนวนอน
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: _categories.length,
         itemBuilder: (_, i) {
           final cat = _categories[i];
-          final isSelected = cat == _selectedCategory;
+          final isSelected = cat == _selectedCategory; //cat นี้ถูกเลือกอยู่บ่
           return Padding(
             padding: const EdgeInsets.only(right: 8,top: 4),
-            child: ChoiceChip(
+            child: ChoiceChip( //widget ใช้เลือก
               label: Text(cat),
               selected: isSelected,
               selectedColor: Colors.black,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : Colors.black,
               ),
+              // setState => rebuild และอัพเดท
               onSelected: (_) => setState(() => _selectedCategory = cat),
             ),
           );
@@ -134,7 +134,7 @@ class _HomepageState extends State<Homepage> {
 
   // ── Feed ดึงจาก Firestore จริง ────────────────────
   Widget _buildFeed() {
-    return StreamBuilder<List<Post>>(
+    return StreamBuilder<List<Post>>( // rebuild ที่มีอัพเดทจาก stream
       stream: _postService.getPosts(category: _selectedCategory),
       builder: (context, snap) {
 
@@ -153,10 +153,10 @@ class _HomepageState extends State<Homepage> {
           return const Center(child: Text('ยังไม่มีโพสต์ในหมวดนี้'));
         }
 
-        final posts = snap.data!;
+        final posts = snap.data!; //เพื่อยืนยันว่าไม่เป็น null
         return ListView.builder(
-          itemCount: posts.length,
-          itemBuilder: (_, i) => _buildPostCard(posts[i]),
+          itemCount: posts.length, // กำหนดจำนวนแถวตามจำนวนโพสต์ที่ดึงมาได้
+          itemBuilder: (_, i) => _buildPostCard(posts[i]), // ในแต่ละแถว (i) ให้ส่งข้อมูลโพสต์อันนั้น posts[i] ไปวาดที่ฟังก์ชัน _buildPostCard
         );
       },
     );
@@ -203,7 +203,7 @@ class _HomepageState extends State<Homepage> {
             Text(post.body,
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis),
+                overflow: TextOverflow.ellipsis), //ถ้าเกินให้ใส่จุดไข่ปลา
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -228,8 +228,6 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-
-  // ── Bottom Nav ────────────────────────────────────
   Widget _buildBottomNav() {
     return Container(
       height: 70,
@@ -251,12 +249,12 @@ class _HomepageState extends State<Homepage> {
             ),
             child: IconButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/write');  // ← เพิ่ม
+                Navigator.pushNamed(context, '/write');
               },
               icon: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
-          StreamBuilder<int>(
+          StreamBuilder<int>( // ใช้ Stream ดูจำนวนที่ยังไม่ได้อ่าน
             stream: NotificationService().getUnreadCount(),
             builder: (context, snap) {
               final count = snap.data ?? 0;
@@ -267,7 +265,7 @@ class _HomepageState extends State<Homepage> {
                     builder: (_) => const NotificationsScreen(),
                   ),
                 ),
-                child: Stack(
+                child: Stack( // ใช้ Stack เพื่อวางตัวเลขทับบนไอคอน
                   clipBehavior: Clip.none,
                   children: [
                     _navItem(Icons.notifications, 'แจ้งเตือน'),
@@ -295,13 +293,13 @@ class _HomepageState extends State<Homepage> {
           ),
           GestureDetector(
             onTap: () {
-              final user = FirebaseAuth.instance.currentUser;
+              final user = FirebaseAuth.instance.currentUser; // เช็กว่า Login อยู่ไหม
               if (user != null) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ProfileScreen(
-                      userId: user.uid,
+                      userId: user.uid, //รอรับข้อมูล
                       displayName: user.displayName ?? '',
                     ),
                   ),

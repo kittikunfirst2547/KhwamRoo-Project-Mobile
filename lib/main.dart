@@ -32,7 +32,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const AuthGate(), // ← เปลี่ยนแล้ว
+      home: const AuthGate(),
       routes: {
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
@@ -48,13 +48,14 @@ class MainApp extends StatelessWidget {
   }
 }
 
-// ── วางไว้ท้าย file ──────────────────────────────────
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
+    //Widget ทำหน้าที่รอดูกระแสข้อมูล
+    return StreamBuilder<User?>( //บอกว่าข้อมูลที่ไหลมาในท่อนี้คือวัตถุ User หรือ null
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
 
@@ -65,10 +66,10 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const Homepage(); // login แล้ว
+          return const Homepage();
         }
 
-        return const Firstpage(); // ยังไม่ login
+        return const Firstpage();
       },
     );
   }

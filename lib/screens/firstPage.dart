@@ -17,7 +17,7 @@ class Firstpage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.book, size: 80, color: Colors.white),
+                Image.asset('assets/images/Logo1.png'),
                 Text(
                   'ความรู้',
                   style: TextStyle(
@@ -29,7 +29,7 @@ class Firstpage extends StatelessWidget {
                 SizedBox(height: 10),
                 SizedBox(height: 5),
                 Text(
-                  "Learn. Share. Grow.\nพื้นที่ของคนที่อยากพัฒนาตัวเอง",
+                  "Learn. Share. Grow.\nพื้นที่ของคนที่มองโลกในแง่บวก",
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -40,7 +40,7 @@ class Firstpage extends StatelessWidget {
             ),
           ),
 
-          // 🔽 ส่วนล่าง
+          //ส่วนล่าง
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -55,9 +55,7 @@ class Firstpage extends StatelessWidget {
                       height: 1.6,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  SizedBox(height: 30),
-                  Spacer(),
+                  Spacer(), //ล่างสุด
                   //ปุ่ม
                   Column(
                     children: [
@@ -69,8 +67,7 @@ class Firstpage extends StatelessWidget {
                             backgroundColor: Colors.black87,
                           ),
                           onPressed: () {
-                            Navigator.push(context , MaterialPageRoute(builder: (context) => LoginScreen()),
-                            );
+                            Navigator.pushNamed(context, '/login');
                           },
                           child: Text("Login",style: TextStyle(color: Colors.white),),
                         ),

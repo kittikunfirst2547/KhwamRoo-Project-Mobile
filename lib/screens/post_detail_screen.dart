@@ -1,6 +1,7 @@
+// lib/screens/post_detail_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ← เพิ่ม
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:khwamroo/models/post_model.dart';
 import 'package:khwamroo/services/notification_service.dart';
 import 'package:khwamroo/services/post_service.dart';
@@ -17,19 +18,39 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   final _postService = PostService();
   final _notificationService = NotificationService();
-  final _db = FirebaseFirestore.instance; // ← เพิ่ม
+  final _db = FirebaseFirestore.instance;
   bool _liked = false;
 
   bool get _isOwner =>
       FirebaseAuth.instance.currentUser?.uid == widget.post.userId;
 
+  // ── เช็ค liked ตอนเปิดหน้า ──────────────────────
+  @override
+  void initState() {
+    super.initState();
+    _checkLiked();
+  }
+
+  Future<void> _checkLiked() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final liked = await _postService.isLiked(widget.post.id, uid);
+    if (mounted) setState(() => _liked = liked);
+  }
+
+  // ── กด like ──────────────────────────────────────
   void _handleLike() async {
+    print('🔔 กด like, _liked: $_liked');
     if (_liked) return;
     setState(() => _liked = true);
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    print('🔔 uid: $uid');
+    if (uid == null) return;
+
     try {
-      await _postService.likePost(widget.post.id);
-      print('✅ like สำเร็จ postId: ${widget.post.id}');
+      await _postService.likePost(widget.post.id, uid);
+      print('✅ like สำเร็จ');
     } catch (e) {
       print('❌ like error: $e');
       setState(() => _liked = false);
@@ -42,13 +63,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
+  // ── ลบโพสต์ ──────────────────────────────────────
   Future<void> _deletePost() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+            borderRadius: BorderRadius.circular(16)),
         title: const Text('ลบโพสต์?'),
         content: const Text(
           'โพสต์นี้จะถูกลบถาวร ไม่สามารถกู้คืนได้',
@@ -65,8 +86,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('ลบ',
                 style: TextStyle(color: Colors.white)),
@@ -131,7 +151,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -208,10 +229,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
             // Body
             Text(post.body,
-                style: const TextStyle(fontSize: 16, height: 1.8)),
+                style:
+                const TextStyle(fontSize: 16, height: 1.8)),
             const SizedBox(height: 40),
 
-            // ── Like button ดึง likes realtime ────────
+            // ── Like button realtime ──────────────────
             Center(
               child: StreamBuilder<DocumentSnapshot>(
                 stream: _db
@@ -219,11 +241,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     .doc(post.id)
                     .snapshots(),
                 builder: (context, snap) {
-                  // ดึง likes จาก Firestore realtime
-                  int likes = widget.post.likes; // default
+                  int likes = widget.post.likes;
                   if (snap.hasData && snap.data!.exists) {
-                  final data = snap.data!.data() as Map<String, dynamic>?;
-                  likes = data?['likes'] ?? 0;
+                    final data = snap.data!.data()
+                    as Map<String, dynamic>?;
+                    likes = data?['likes'] ?? 0;
                   }
                   return GestureDetector(
                     onTap: _handleLike,
@@ -244,12 +266,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             _liked
                                 ? Icons.favorite
                                 : Icons.favorite_border,
-                            color:
-                            _liked ? Colors.red : Colors.grey,
+                            color: _liked
+                                ? Colors.red
+                                : Colors.grey,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '$likes ถูกใจ', // ← realtime
+                            '$likes ถูกใจ',
                             style: TextStyle(
                               color: _liked
                                   ? Colors.red

@@ -1,9 +1,10 @@
 // lib/services/ai_service.dart
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class AiService {
-  static const _apiKey = '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';
+  static final _apiKey = dotenv.env['OPENROUTER_API_KEY'] ?? '';
   static const _baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
   static const _model = 'gpt-oss-120b:free';
 

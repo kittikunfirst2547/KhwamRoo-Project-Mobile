@@ -1,8 +1,8 @@
-// lib/screens/post_detail_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:khwamroo/models/post_model.dart';
+import 'package:khwamroo/services/ai_service.dart';
 import 'package:khwamroo/services/notification_service.dart';
 import 'package:khwamroo/services/post_service.dart';
 import 'package:khwamroo/screens/profile_screen.dart';
@@ -18,13 +18,15 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   final _postService = PostService();
   final _notificationService = NotificationService();
+  final _aiService = AiService();              // ← ย้ายมาที่นี่
   final _db = FirebaseFirestore.instance;
   bool _liked = false;
+  String? _summary;
+  bool _isSummarizing = false;
 
   bool get _isOwner =>
       FirebaseAuth.instance.currentUser?.uid == widget.post.userId;
 
-  // ── เช็ค liked ตอนเปิดหน้า ──────────────────────
   @override
   void initState() {
     super.initState();
@@ -38,21 +40,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (mounted) setState(() => _liked = liked);
   }
 
-  // ── กด like ──────────────────────────────────────
   void _handleLike() async {
-    print('🔔 กด like, _liked: $_liked');
     if (_liked) return;
     setState(() => _liked = true);
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    print('🔔 uid: $uid');
     if (uid == null) return;
 
     try {
       await _postService.likePost(widget.post.id, uid);
-      print('✅ like สำเร็จ');
     } catch (e) {
-      print('❌ like error: $e');
       setState(() => _liked = false);
     }
 
@@ -63,7 +60,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  // ── ลบโพสต์ ──────────────────────────────────────
+  // ── Summarize ──────────────────────────────────────
+  Future<void> _summarize() async {
+    setState(() => _isSummarizing = true);
+    final result = await _aiService.summarize(
+      title: widget.post.title,
+      body: widget.post.body,
+    );
+    setState(() {
+      _summary = result;
+      _isSummarizing = false;
+    });
+  }
+
   Future<void> _deletePost() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -71,10 +80,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
         title: const Text('ลบโพสต์?'),
-        content: const Text(
-          'โพสต์นี้จะถูกลบถาวร ไม่สามารถกู้คืนได้',
-          style: TextStyle(color: Colors.grey),
-        ),
+        content: const Text('โพสต์นี้จะถูกลบถาวร',
+            style: TextStyle(color: Colors.grey)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -151,8 +158,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 20, vertical: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -174,10 +181,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             Text(
               post.title,
               style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                height: 1.4,
-              ),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  height: 1.4),
             ),
             const SizedBox(height: 16),
 
@@ -197,10 +203,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: Colors.black,
-                    child: Text(
-                      post.displayName[0],
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    child: Text(post.displayName[0],
+                        style:
+                        const TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -219,7 +224,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   Text(
                     '${post.createdAt.day}/${post.createdAt.month}/${post.createdAt.year}',
                     style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade400),
+                        fontSize: 12,
+                        color: Colors.grey.shade400),
                   ),
                 ],
               ),
@@ -227,13 +233,85 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
             const Divider(height: 32),
 
+            // ── AI Summarize ────────────────────────
+            if (_summary == null)
+              Center(
+                child: TextButton.icon(
+                  onPressed: _isSummarizing ? null : _summarize,
+                  icon: _isSummarizing
+                      ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2),
+                  )
+                      : const Icon(Icons.auto_awesome,
+                      size: 16, color: Colors.black),
+                  label: Text(
+                    _isSummarizing
+                        ? 'กำลังสรุป...'
+                        : 'สรุปบทความด้วย AI',
+                    style: const TextStyle(color: Colors.black),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.grey.shade100,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                  ),
+                ),
+              ),
+
+            if (_summary != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome,
+                            size: 14, color: Colors.black54),
+                        const SizedBox(width: 6),
+                        const Text('สรุปโดย AI',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black54)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _summary = null),
+                          child: Icon(Icons.close,
+                              size: 16,
+                              color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(_summary!,
+                        style: const TextStyle(
+                            fontSize: 14, height: 1.7)),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 8),
+
             // Body
             Text(post.body,
-                style:
-                const TextStyle(fontSize: 16, height: 1.8)),
+                style: const TextStyle(
+                    fontSize: 16, height: 1.8)),
             const SizedBox(height: 40),
 
-            // ── Like button realtime ──────────────────
+            // Like button realtime
             Center(
               child: StreamBuilder<DocumentSnapshot>(
                 stream: _db
@@ -250,14 +328,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   return GestureDetector(
                     onTap: _handleLike,
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration:
+                      const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 32, vertical: 12),
                       decoration: BoxDecoration(
                         color: _liked
                             ? Colors.red.shade50
                             : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius:
+                        BorderRadius.circular(30),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

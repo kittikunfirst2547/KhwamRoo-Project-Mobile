@@ -1,16 +1,16 @@
 // lib/models/notification_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum NotificationType { like, comment, system }
+enum NotificationType { like, system }
 
 class NotificationModel {
   final String id;
-  final String toUserId;         // ← แก้จาก toUid
-  final String fromUserId;       // ← แก้จาก fromUid
-  final String fromDisplayName;  // ← แก้จาก fromName
+  final String toUserId;
+  final String fromUserId;
+  final String fromDisplayName;
   final NotificationType type;
   final String postId;
-  final String postTitle;        // ← เพิ่มใหม่
+  final String postTitle;
   final bool isRead;
   final DateTime createdAt;
 

@@ -72,10 +72,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             );
           }
 
-          final notifications = snap.data!;
+          final notifications = snap.data!;//ห้ามว่าง
           return ListView.separated(
             itemCount: notifications.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, __) => //ตัวแปรต้องมีโครงสร้างตามฟังก์ชัน
                 Divider(height: 1, color: Colors.grey.shade100),
             itemBuilder: (_, i) =>
                 _buildNotificationItem(notifications[i]),
@@ -147,7 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // ── Title text ────────────────────────────────────
+  // Title text
   Widget _buildTitle(NotificationModel n) {
     return RichText(
       text: TextSpan(
@@ -164,13 +164,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────
+  // Helpers
   String _typeText(NotificationType type) {
     switch (type) {
       case NotificationType.like:
         return 'ถูกใจโพสต์ของคุณ';
-      case NotificationType.comment:
-        return 'แสดงความคิดเห็นในโพสต์ของคุณ';
       case NotificationType.system:
         return 'มีการแจ้งเตือนจากระบบ';
     }
@@ -180,8 +178,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (type) {
       case NotificationType.like:
         return Icons.favorite;
-      case NotificationType.comment:
-        return Icons.chat_bubble;
       case NotificationType.system:
         return Icons.info;
     }
@@ -191,8 +187,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (type) {
       case NotificationType.like:
         return Colors.red;
-      case NotificationType.comment:
-        return Colors.blue;
       case NotificationType.system:
         return Colors.orange;
     }

@@ -6,7 +6,6 @@ class PostService {
   final _db = FirebaseFirestore.instance;
 
   // ดึง posts realtime
-  // ── ดึง posts realtime ────────────────────────────
   Stream<List<Post>> getPosts({String? category}) {
     return _db
         .collection('posts')

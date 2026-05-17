@@ -15,17 +15,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
+  bool _isLoading = false; //ตัวแปรเช็ค
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _emailController.dispose(); // ลบตัวควบคุมออกจากหน่วยความจำเพื่อกัน crash by อาจารย์ชนนวี
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _onLogin() async {
+  Future<void> _onLogin() async { //รอแบบไม่รีเทินค่า
     if (_emailController.text.trim().isEmpty) {
       _showSnackbar('กรุณาใส่ email');
       return;
@@ -34,29 +34,27 @@ class _LoginScreenState extends State<LoginScreen> {
       _showSnackbar('กรุณาใส่ password');
       return;
     }
-
     setState(() => _isLoading = true);
-
     try {
+      // ส่งข้อมูลไปให้ Firebase ผ่าน AuthService
       await _authService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      print('✅ Login success'); // ← เพิ่ม
-      print('✅ currentUser: ${FirebaseAuth.instance.currentUser?.uid}'); // ← เพิ่ม
+      print('✅ Login success');
 
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
+      if (mounted) { // เช็กว่าผู้ใช้ยังอยู่ในจอไหม
+        Navigator.pushAndRemoveUntil( //เปิดหน้าและลบอันก่อนออก
           context,
           MaterialPageRoute(builder: (_) => const Homepage()),
           (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
-      print('❌ Login error code: ${e.code}'); // ← เพิ่ม
+      print('❌ Login error code: ${e.code}');
       _showSnackbar(_getErrorMessage(e.code));
     } catch (e) {
-      print('❌ Login error: $e'); // ← เพิ่ม
+      print('❌ Login error: $e');
       _showSnackbar('เกิดข้อผิดพลาด: $e');
     } finally {
       setState(() => _isLoading = false);
@@ -115,12 +113,12 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
 
               // Email
-              _buildLabel('Email'),
+              _buildLabel('Email'), //ใช้ซ้ำ
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: _inputDecoration('example@email.com'),
+                decoration: _inputDecoration('minecraft@gmail.com'),
               ),
               const SizedBox(height: 20),
 
@@ -166,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-
               // ไปหน้า Register
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -178,8 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
-                    ),
+                          builder: (_) => const RegisterScreen()),),
                     child: const Text('สมัครสมาชิก',
                         style: TextStyle(
                             fontWeight: FontWeight.bold)),
@@ -192,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
+  //global
   Widget _buildLabel(String text) {
     return Text(text,
         style: const TextStyle(fontWeight: FontWeight.w600));

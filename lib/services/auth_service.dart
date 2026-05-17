@@ -7,21 +7,21 @@ class AuthService {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
 
-  // ── Register ──────────────────────────────────────
+  // Register
   Future<void> register({
     required String email,
     required String password,
     required String displayName,
     required String username,
   }) async {
-    // ── Step 1: สร้าง user ใน Firebase Auth ก่อน ──────
+    // สร้าง user ใน Firebase Auth ก่อน
     final cred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
     try {
-      // ── Step 2: เช็ค username ซ้ำ (ตอนนี้ login แล้ว) ──
+      // เช็ค username ซ้ำ
       final usernameCheck = await _db
           .collection('users')
           .where('username', isEqualTo: username)
@@ -29,15 +29,15 @@ class AuthService {
           .get();
 
       if (usernameCheck.docs.isNotEmpty) {
-        // ลบ Auth user ที่เพิ่งสร้างออกด้วย
+        // ลบ Auth user
         await cred.user!.delete();
         throw Exception('username_taken');
       }
 
-      // ── Step 3: อัปเดต displayName ──────────────────
+      // อัปเดต displayName
       await cred.user!.updateDisplayName(displayName);
 
-      // ── Step 4: บันทึกลง Firestore ──────────────────
+      // บันทึกลง Firestore
       final newUser = UserModel(
         uid: cred.user!.uid,
         email: email,
@@ -53,13 +53,12 @@ class AuthService {
           .set(newUser.toMap());
 
     } catch (e) {
-      // ถ้า step ไหน fail ให้ลบ Auth user ออกด้วยเสมอ
       // ป้องกัน Auth user ค้างโดยไม่มีข้อมูลใน Firestore
       await cred.user?.delete();
       rethrow;
     }
   }
-  // ── Login ─────────────────────────────────────────
+  // Login
   Future<void> login({
     required String email,
     required String password,
@@ -70,19 +69,19 @@ class AuthService {
     );
   }
 
-  // ── Logout ────────────────────────────────────────
+  // Logout
   Future<void> logout() async {
     await _auth.signOut();
   }
 
-  // ── ดึงข้อมูล User จาก Firestore ─────────────────
+  // ดึงข้อมูล User จาก Firestore
   Future<UserModel?> getUserById(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (!doc.exists) return null;
     return UserModel.fromMap(doc.id, doc.data()!);
   }
 
-  // ── Stream User realtime ──────────────────────────
+  // Stream User realtime
   Stream<UserModel?> userStream(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
@@ -90,7 +89,7 @@ class AuthService {
     });
   }
 
-  // ── Update Profile ────────────────────────────────
+  // Update Profile
   Future<void> updateProfile({
     required String uid,
     String? displayName,
@@ -113,9 +112,9 @@ class AuthService {
     await _db.collection('users').doc(uid).update(updates);
   }
 
-  // ── Current User ──────────────────────────────────
+  // Current User
   User? get currentUser => _auth.currentUser;
 
-  // ── Auth State Stream ─────────────────────────────
+  // Auth State Stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 }

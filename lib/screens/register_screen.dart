@@ -13,7 +13,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _authService = AuthService();
   final _nameController = TextEditingController();
-  final _usernameController = TextEditingController(); // ← เพิ่ม
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -22,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _usernameController.dispose(); // ← เพิ่ม
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -198,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(color: Colors.grey.shade600)),
             const SizedBox(height: 32),
 
-            // ── ชื่อที่แสดง ──────────────────────────
+            // ชื่อที่แสดง
             _buildLabel('ชื่อที่แสดง'),
             const SizedBox(height: 8),
             TextField(
@@ -207,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── Username ─────────────────────────────
+            // Username
             _buildLabel('Username'),
             const SizedBox(height: 8),
             TextField(
@@ -218,22 +218,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 helperText: 'ใช้ได้เฉพาะ a-z, 0-9, _ และ 3-20 ตัว',
                 helperStyle: TextStyle(color: Colors.grey.shade500),
               ),
-              // บังคับ lowercase อัตโนมัติ
-              onChanged: (val) {
-                final lower = val.toLowerCase();
-                if (val != lower) {
-                  _usernameController.value =
-                      _usernameController.value.copyWith(
-                        text: lower,
-                        selection: TextSelection.collapsed(
-                            offset: lower.length),
-                      );
-                }
-              },
             ),
             const SizedBox(height: 20),
 
-            // ── Email ────────────────────────────────
+            // Email
             _buildLabel('Email'),
             const SizedBox(height: 8),
             TextField(
@@ -243,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 20),
 
-            // ── Password ─────────────────────────────
+            // Password
             _buildLabel('Password'),
             const SizedBox(height: 8),
             TextField(

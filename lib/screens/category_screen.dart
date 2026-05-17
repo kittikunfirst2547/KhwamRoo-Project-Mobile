@@ -57,13 +57,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  // ── Category Grid ─────────────────────────────────
+  // Category Grid
   Widget _buildCategoryGrid() {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
       child: GridView.builder(
-        shrinkWrap: true,
+        shrinkWrap: true, // grid มีขนาดเท่ากับเนื้อหาภายใน
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
@@ -124,7 +124,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  // ── Post List ─────────────────────────────────────
+  // Post List
   Widget _buildPostList() {
     return StreamBuilder<List<Post>>(
       key: ValueKey(_selectedCategory),

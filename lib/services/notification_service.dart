@@ -53,7 +53,6 @@ class NotificationService {
     String postTitle = '',
   }) async {
     if (toUserId == fromUserId) return;
-
     await _db.collection('notifications').add(
       NotificationModel(
         id: '',
@@ -68,7 +67,7 @@ class NotificationService {
     );
   }
 
-  // ── นับ unread (ใช้ใน Homepage badge) ────────────
+  // นับ unread
   Stream<int> getUnreadCount() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value(0);
@@ -81,7 +80,7 @@ class NotificationService {
         .map((snap) => snap.docs.length);
   }
 
-  // ── ดึง Notifications ของ User (realtime) ─────────
+  // ดึง Notifications ของ User
   Stream<List<NotificationModel>> getNotifications(String uid) {
     return _db
         .collection('notifications')
@@ -93,7 +92,7 @@ class NotificationService {
         .toList());
   }
 
-  // ── อ่านแล้ว (ทีละตัว) ───────────────────────────
+  // อ่านแล้ว
   Future<void> markAsRead(String notificationId) async {
     await _db
         .collection('notifications')
@@ -101,7 +100,7 @@ class NotificationService {
         .update({'isRead': true});
   }
 
-  // ── อ่านทั้งหมด ───────────────────────────────────
+  //อ่านทั้งหมด
   Future<void> markAllAsRead(String uid) async {
     final batch = _db.batch();
     final unread = await _db
@@ -113,6 +112,6 @@ class NotificationService {
     for (final doc in unread.docs) {
       batch.update(doc.reference, {'isRead': true});
     }
-    await batch.commit();
+    await batch.commit(); //ส่งเข้า firestore
   }
 }

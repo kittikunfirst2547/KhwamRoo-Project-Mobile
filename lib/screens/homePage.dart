@@ -1,3 +1,4 @@
+// lib/screens/homePage.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:khwamroo/models/post_model.dart';
@@ -7,7 +8,6 @@ import 'package:khwamroo/screens/profile_screen.dart';
 import 'package:khwamroo/services/notification_service.dart';
 import 'package:khwamroo/services/post_service.dart';
 
-
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
 
@@ -16,12 +16,20 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  final _postService = PostService(); //ประกาศใช้งาน Service เพื่อเรียกข้อมูลโพสต์จาก Firebase
-  String _selectedCategory = 'ทั้งหมด'; //default
+  final _postService = PostService();
+  String _selectedCategory = 'ทั้งหมด';
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
 
   final List<String> _categories = [
     'ทั้งหมด', 'การเงิน', 'การเรียน', 'กีฬา', 'เกม', 'Mindset', 'Career'
   ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +40,7 @@ class _HomepageState extends State<Homepage> {
         child: Column(
           children: [
             _buildHeader(),
+            _buildSearchBar(),
             _buildCategoryChips(),
             const SizedBox(height: 8),
             Expanded(child: _buildFeed()),
@@ -40,7 +49,8 @@ class _HomepageState extends State<Homepage> {
       ),
     );
   }
-  // ── Header ──────────────────────────────────────
+
+  // Header
   Widget _buildHeader() {
     final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName ?? '';
@@ -49,14 +59,12 @@ class _HomepageState extends State<Homepage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Logo
           SizedBox(
             width: 120,
             height: 120,
             child: Image.asset('assets/images/Logo1.png', fit: BoxFit.cover),
           ),
-          // โปรไฟล์มุมขวาบน
-          GestureDetector( //ตรวจจับการกระทำของผู้ใช้
+          GestureDetector(
             onTap: () {
               if (user != null) {
                 Navigator.push(
@@ -72,27 +80,21 @@ class _HomepageState extends State<Homepage> {
             },
             child: Row(
               children: [
-                // ชื่อ
                 Text(
                   displayName,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(width: 8),
-                // Avatar
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.black,
                   child: Text(
                     displayName.isNotEmpty
-                        ? displayName.toUpperCase()
+                        ? displayName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -103,27 +105,59 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  // ── Category Chips ───────────────────────────────
+  // ── Search Bar ────────────────────────────────────
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) => setState(() => _searchQuery = val.trim()),
+        decoration: InputDecoration(
+          hintText: 'ค้นหาโพสต์...',
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.close, color: Colors.grey),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  // ── Category Chips ────────────────────────────────
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 56,
-      child: ListView.builder( //loop ข้อมูลตาม list ด้านบนเด้อ
-        scrollDirection: Axis.horizontal, //เลื่อนแนวนอน
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: _categories.length,
         itemBuilder: (_, i) {
           final cat = _categories[i];
-          final isSelected = cat == _selectedCategory; //cat นี้ถูกเลือกอยู่บ่
+          final isSelected = cat == _selectedCategory;
           return Padding(
-            padding: const EdgeInsets.only(right: 8,top: 4),
-            child: ChoiceChip( //widget ใช้เลือก
+            padding: const EdgeInsets.only(right: 8, top: 4),
+            child: ChoiceChip(
               label: Text(cat),
               selected: isSelected,
               selectedColor: Colors.black,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : Colors.black,
               ),
-              // setState => rebuild และอัพเดท
               onSelected: (_) => setState(() => _selectedCategory = cat),
             ),
           );
@@ -132,47 +166,64 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  // ── Feed ดึงจาก Firestore จริง ────────────────────
+  // ── Feed ──────────────────────────────────────────
   Widget _buildFeed() {
-    return StreamBuilder<List<Post>>( // rebuild ที่มีอัพเดทจาก stream
+    return StreamBuilder<List<Post>>(
       stream: _postService.getPosts(category: _selectedCategory),
       builder: (context, snap) {
-
-        // loading
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        // error
         if (snap.hasError) {
           return const Center(child: Text('เกิดข้อผิดพลาด'));
         }
-
-        // ไม่มีโพสต์
         if (!snap.hasData || snap.data!.isEmpty) {
           return const Center(child: Text('ยังไม่มีโพสต์ในหมวดนี้'));
         }
 
-        final posts = snap.data!; //เพื่อยืนยันว่าไม่เป็น null
+        // ── filter ตาม search ──────────────────────
+        var posts = snap.data!;
+        if (_searchQuery.isNotEmpty) {
+          posts = posts
+              .where((p) => p.title
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()))
+              .toList();
+        }
+
+        if (posts.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search_off,
+                    size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Text(
+                  'ไม่พบโพสต์ที่ค้นหา',
+                  style: TextStyle(color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          );
+        }
+
+
         return ListView.builder(
-          itemCount: posts.length, // กำหนดจำนวนแถวตามจำนวนโพสต์ที่ดึงมาได้
-          itemBuilder: (_, i) => _buildPostCard(posts[i]), // ในแต่ละแถว (i) ให้ส่งข้อมูลโพสต์อันนั้น posts[i] ไปวาดที่ฟังก์ชัน _buildPostCard
+          itemCount: posts.length,
+          itemBuilder: (_, i) => _buildPostCard(posts[i]),
         );
       },
     );
   }
 
-  // ── Post Card รับ Post object แทน Map ────────────
+  //  Post Card
   Widget _buildPostCard(Post post) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PostDetailScreen(post: post),
-          ),
-        );
-      },
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+      ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(16),
@@ -180,14 +231,16 @@ class _HomepageState extends State<Homepage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05), blurRadius: 6)
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(20),
@@ -201,9 +254,10 @@ class _HomepageState extends State<Homepage> {
                     fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             Text(post.body,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                style:
+                TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 maxLines: 2,
-                overflow: TextOverflow.ellipsis), //ถ้าเกินให้ใส่จุดไข่ปลา
+                overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -217,7 +271,8 @@ class _HomepageState extends State<Homepage> {
                         size: 15, color: Colors.grey.shade400),
                     const SizedBox(width: 4),
                     Text('${post.likes}',
-                        style: TextStyle(color: Colors.grey.shade500)),
+                        style:
+                        TextStyle(color: Colors.grey.shade500)),
                   ],
                 ),
               ],
@@ -228,6 +283,7 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
+  // Bottom Nav
   Widget _buildBottomNav() {
     return Container(
       height: 70,
@@ -248,13 +304,11 @@ class _HomepageState extends State<Homepage> {
               borderRadius: BorderRadius.circular(15),
             ),
             child: IconButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/write');
-              },
+              onPressed: () => Navigator.pushNamed(context, '/write'),
               icon: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
-          StreamBuilder<int>( // ใช้ Stream ดูจำนวนที่ยังไม่ได้อ่าน
+          StreamBuilder<int>(
             stream: NotificationService().getUnreadCount(),
             builder: (context, snap) {
               final count = snap.data ?? 0;
@@ -262,10 +316,9 @@ class _HomepageState extends State<Homepage> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
+                      builder: (_) => const NotificationsScreen()),
                 ),
-                child: Stack( // ใช้ Stack เพื่อวางตัวเลขทับบนไอคอน
+                child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     _navItem(Icons.notifications, 'แจ้งเตือน'),
@@ -293,19 +346,18 @@ class _HomepageState extends State<Homepage> {
           ),
           GestureDetector(
             onTap: () {
-              final user = FirebaseAuth.instance.currentUser; // เช็กว่า Login อยู่ไหม
+              final user = FirebaseAuth.instance.currentUser;
               if (user != null) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ProfileScreen(
-                      userId: user.uid, //รอรับข้อมูล
+                      userId: user.uid,
                       displayName: user.displayName ?? '',
                     ),
                   ),
                 );
               } else {
-                // ถ้ายังไม่ Login ให้ไปหน้า Login
                 Navigator.pushNamed(context, '/login');
               }
             },
